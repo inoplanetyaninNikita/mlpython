@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from tkinter import ttk
 import pandas as pd
 
@@ -74,7 +74,13 @@ def ml(texts, labels, test_size_percent, epoch):
     dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train))
     dataset = dataset.batch(32)  # Размер пакета
 
-    model.fit(dataset, epochs=epoch, callbacks=custom_callback)
+    predict_button.config(state='disabled')
+
+    model.fit(dataset, epochs=epoch, callbacks=custom_callback, use_multiprocessing=True)
+    _, accuracy = model.evaluate(X_test, y_test, use_multiprocessing=True)
+
+    predict_button.config(state='normal')
+    messagebox.showinfo("Информация", f"Точность составляет: {accuracy}")
 
     global text
     if text != None: return
@@ -85,20 +91,22 @@ def ml(texts, labels, test_size_percent, epoch):
     text = tk.Entry(root)
     text.pack(side="right")
 
+
     def button_click():
+        global text
         # Пример использования обученной модели
         texts_to_check = [
-            "Most of the ATMs in private banks are out of cash."
+            text.get()
         ]
         sequences_to_check = tokenizer.texts_to_sequences(texts_to_check)
         X_to_check = pad_sequences(sequences_to_check, maxlen=max_sequence_length)
-        predictions = model.predict(X_to_check)
+        predictions = model.predict(X_to_check, use_multiprocessing=True)
 
         # Вывод результатов
-        for text, prediction in zip(texts_to_check, predictions):
+        for textforprediect, prediction in zip(texts_to_check, predictions):
             predicted_label = list(label_encoder.classes_)[list(prediction).index(max(prediction))]
-            print(f"Text: {text}")
-            print(f"Prediction: {predicted_label}")
+            messagebox.showinfo("Информация", f"Предсказание AI: {predicted_label}")
+            print(f"Text: {textforprediect}")
             print()
 
     button = tk.Button(root, text="Предсказать", command=button_click)
